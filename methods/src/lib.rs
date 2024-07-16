@@ -15,39 +15,157 @@
 //! Generated crate containing the image ID and ELF binary of the build guest.
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
+use risc0_zkvm::{default_executor, default_prover, ExecutorEnv, Receipt};
+
+pub fn verify_signature(pk_old: Option<Vec<u8>>, receipt: Option<Receipt>, signature_input: (Vec<u8>, Vec<u8>, Vec<u8>)) -> Receipt {
+
+
+    let env = match receipt {
+        Some(r) => {
+            ExecutorEnv::builder()
+            .add_assumption(r)
+            .write(&signature_input)
+            .unwrap()
+            .write(&pk_old)
+            .unwrap()
+            .write(&PROOFS_ID)
+            .unwrap()
+            .build()
+            .unwrap()
+
+        },
+        None => {
+            ExecutorEnv::builder()
+            .write(&signature_input)
+            .unwrap()
+            .write(&pk_old)
+            .unwrap()
+            .write(&PROOFS_ID)
+            .unwrap()
+            .build()
+            .unwrap()
+        }
+    };
+
+    let prover = default_prover();
+
+    let proof = prover.prove(env, PROOFS_ELF).unwrap();
+    let receipt = proof.receipt;
+
+    receipt.verify(PROOFS_ID).unwrap();
+
+    let new_pubkey: Vec<u8> = receipt.journal.decode().unwrap();
+
+    println!("Signature verified with pubkey: {:?}", new_pubkey);
+
+    receipt
+}
+
 #[cfg(test)]
 mod tests {
-    use alloy_primitives::U256;
-    use alloy_sol_types::SolValue;
-    use risc0_zkvm::{default_executor, ExecutorEnv};
+    use ark_bn254::{Fr, G1Projective, G2Projective};
+    use ark_ec::Group;
+    use ark_ff::PrimeField;
+    use ark_serialize::CanonicalSerialize;
+    use ark_std::UniformRand;
+    use risc0_zkvm::Receipt;
+    use sha2::{Digest, Sha384};
+    use std::fs::File;
+    use std::io::Write;
 
-    #[test]
-    fn proves_even_number() {
-        let even_number = U256::from(1304);
+    fn generate_inputs() -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), anyhow::Error> {
+        let g1_gen: G1Projective = G1Projective::generator();
+        let g2_gen: G2Projective = G2Projective::generator();
 
-        let env = ExecutorEnv::builder()
-            .write_slice(&even_number.abi_encode())
-            .build()
+        let mut rng = ark_std::test_rng();
+        let s1 = Fr::rand(&mut rng);
+        let s2 = Fr::rand(&mut rng);
+
+        println!("s1: {:?}", s1);
+        println!("s2: {:?}", s2);
+
+        let pk_old: G2Projective = g2_gen * s1;
+        let pk_new: G2Projective = g2_gen * s2;
+
+        let mut pk_old_bytes: Vec<u8> = Vec::new();
+        pk_old.serialize_compressed(&mut pk_old_bytes).unwrap();
+
+        let mut pk_new_bytes: Vec<u8> = Vec::new();
+        pk_new.serialize_compressed(&mut pk_new_bytes).unwrap();
+
+        let mut hasher = Sha384::new();
+        hasher.update(pk_old_bytes);
+        let message_hash = hasher.finalize();
+        let message: G1Projective = g1_gen * Fr::from_le_bytes_mod_order(message_hash.as_slice());
+        let mut message_bytes: Vec<u8> = Vec::new();
+        message.serialize_compressed(&mut message_bytes).unwrap();
+
+        let signature: G1Projective = message * s2;
+
+        let mut signature_bytes: Vec<u8> = Vec::new();
+        signature
+            .serialize_compressed(&mut signature_bytes)
             .unwrap();
 
-        // NOTE: Use the executor to run tests without proving.
-        let session_info = default_executor().execute(env, super::IS_EVEN_ELF).unwrap();
-
-        let x = U256::abi_decode(&session_info.journal.bytes, true).unwrap();
-        assert_eq!(x, even_number);
+        Ok((pk_new_bytes, message_bytes, signature_bytes))
     }
 
     #[test]
-    #[should_panic(expected = "number is not even")]
-    fn rejects_odd_number() {
-        let odd_number = U256::from(75);
+    fn test_verify_signature() -> Result<(), anyhow::Error> {
+        // read json file and parse it
+        let json_file = std::fs::read_to_string("examples/receipt.json")?;
+        let receipt: Receipt = serde_json::from_str(&json_file)?;
 
-        let env = ExecutorEnv::builder()
-            .write_slice(&odd_number.abi_encode())
-            .build()
+        let pk_old: Vec<u8> = receipt.journal.decode().unwrap();
+        println!("pub_key: {:?}", pk_old);
+
+        let g1_gen: G1Projective = G1Projective::generator();
+        let g2_gen: G2Projective = G2Projective::generator();
+
+        let mut rng = ark_std::test_rng();
+        let s1 = Fr::rand(&mut rng);
+        let pk_new: G2Projective = g2_gen * s1;
+        let mut pk_new_bytes: Vec<u8> = Vec::new();
+        pk_new.serialize_compressed(&mut pk_new_bytes).unwrap();
+
+        let mut hasher = Sha384::new();
+        hasher.update(&pk_old);
+        let message_hash = hasher.finalize();
+        let message: G1Projective = g1_gen * Fr::from_le_bytes_mod_order(message_hash.as_slice());
+        let mut message_bytes: Vec<u8> = Vec::new();
+        message.serialize_compressed(&mut message_bytes).unwrap();
+
+        let signature: G1Projective = message * s1;
+
+        let mut signature_bytes: Vec<u8> = Vec::new();
+        signature
+            .serialize_compressed(&mut signature_bytes)
             .unwrap();
 
-        // NOTE: Use the executor to run tests without proving.
-        default_executor().execute(env, super::IS_EVEN_ELF).unwrap();
+        let signature_input = (pk_new_bytes, message_bytes, signature_bytes);
+
+        super::verify_signature(Some(pk_old), Some(receipt), signature_input);
+
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    fn generate_test_proof() -> Result<(), anyhow::Error> {
+        let inputs = generate_inputs()?;
+
+        let receipt = super::verify_signature(None, None, inputs);
+
+        let pub_key: Vec<u8> = receipt.journal.decode().unwrap();
+        println!("pub_key: {:?}", pub_key);
+
+        let json_receipt = serde_json::to_string(&receipt).unwrap();
+        std::fs::create_dir_all("./examples")?;
+        let mut file = File::create("examples/receipt.json")?;
+
+        // Write the serialized string to the file
+        file.write_all(json_receipt.as_bytes())?;
+
+        Ok(())
     }
 }
