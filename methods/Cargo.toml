@@ -16,7 +16,9 @@ risc0-zkp = { workspace = true }
 anyhow = "1.0.86"
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
-risc0-zkvm = { workspace = true, features = ["client"] }
+risc0-zkvm = { workspace = true, features = ["client", "prove"] }
+ethers = { workspace = true }
+hex = { workspace = true }
 ark-ec = "0.4"
 ark-ff = "0.4"
 ark-serialize = "0.4"

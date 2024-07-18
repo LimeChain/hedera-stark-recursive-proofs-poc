@@ -15,14 +15,17 @@
 //! Generated crate containing the image ID and ELF binary of the build guest.
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
-use risc0_zkvm::{default_executor, default_prover, ExecutorEnv, Receipt};
+use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt, VerifierContext};
 
-pub fn verify_signature(pk_old: Option<Vec<u8>>, receipt: Option<Receipt>, signature_input: (Vec<u8>, Vec<u8>, Vec<u8>)) -> Receipt {
+pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
-
+pub fn verify_signature(
+    pk_old: Option<Vec<u8>>,
+    receipt: Option<Receipt>,
+    signature_input: SignatureInput,
+) -> Receipt {
     let env = match receipt {
-        Some(r) => {
-            ExecutorEnv::builder()
+        Some(r) => ExecutorEnv::builder()
             .add_assumption(r)
             .write(&signature_input)
             .unwrap()
@@ -31,11 +34,8 @@ pub fn verify_signature(pk_old: Option<Vec<u8>>, receipt: Option<Receipt>, signa
             .write(&PROOFS_ID)
             .unwrap()
             .build()
-            .unwrap()
-
-        },
-        None => {
-            ExecutorEnv::builder()
+            .unwrap(),
+        None => ExecutorEnv::builder()
             .write(&signature_input)
             .unwrap()
             .write(&pk_old)
@@ -43,15 +43,19 @@ pub fn verify_signature(pk_old: Option<Vec<u8>>, receipt: Option<Receipt>, signa
             .write(&PROOFS_ID)
             .unwrap()
             .build()
-            .unwrap()
-        }
+            .unwrap(),
     };
 
     let prover = default_prover();
 
-    let proof = prover.prove(env, PROOFS_ELF).unwrap();
+    println!("Proving the signature");
+    let proof = prover
+        .prove_with_opts(env, PROOFS_ELF, &ProverOpts::succinct())
+        .unwrap();
+
     let receipt = proof.receipt;
 
+    println!("Verifying the proof");
     receipt.verify(PROOFS_ID).unwrap();
 
     let new_pubkey: Vec<u8> = receipt.journal.decode().unwrap();
@@ -73,16 +77,13 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
-    fn generate_inputs() -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), anyhow::Error> {
+    fn generate_inputs() -> Result<crate::SignatureInput, anyhow::Error> {
         let g1_gen: G1Projective = G1Projective::generator();
         let g2_gen: G2Projective = G2Projective::generator();
 
         let mut rng = ark_std::test_rng();
         let s1 = Fr::rand(&mut rng);
         let s2 = Fr::rand(&mut rng);
-
-        println!("s1: {:?}", s1);
-        println!("s2: {:?}", s2);
 
         let pk_old: G2Projective = g2_gen * s1;
         let pk_new: G2Projective = g2_gen * s2;
@@ -113,11 +114,11 @@ mod tests {
     #[test]
     fn test_verify_signature() -> Result<(), anyhow::Error> {
         // read json file and parse it
-        let json_file = std::fs::read_to_string("examples/receipt.json")?;
-        let receipt: Receipt = serde_json::from_str(&json_file)?;
+        let receipt_bytes = std::fs::read_to_string("examples/receipt.json")?;
+
+        let receipt: Receipt = serde_json::from_str(&receipt_bytes)?;
 
         let pk_old: Vec<u8> = receipt.journal.decode().unwrap();
-        println!("pub_key: {:?}", pk_old);
 
         let g1_gen: G1Projective = G1Projective::generator();
         let g2_gen: G2Projective = G2Projective::generator();
@@ -154,18 +155,29 @@ mod tests {
     fn generate_test_proof() -> Result<(), anyhow::Error> {
         let inputs = generate_inputs()?;
 
-        let receipt = super::verify_signature(None, None, inputs);
+        let receipt: Receipt = super::verify_signature(None, None, inputs);
 
-        let pub_key: Vec<u8> = receipt.journal.decode().unwrap();
-        println!("pub_key: {:?}", pub_key);
-
-        let json_receipt = serde_json::to_string(&receipt).unwrap();
+        let receipt_bytes = serde_json::to_string_pretty(&receipt).unwrap();
         std::fs::create_dir_all("./examples")?;
         let mut file = File::create("examples/receipt.json")?;
 
         // Write the serialized string to the file
-        file.write_all(json_receipt.as_bytes())?;
+        file.write_all(&receipt_bytes.as_bytes())?;
 
         Ok(())
     }
+
+    // #[test]
+    // #[ignore]
+    // fn verify_groth16() -> Result<(), anyhow::Error> {
+    //     let receipt_bytes = std::fs::read_to_string("examples/receipt.json")?;
+    //     let receipt: Receipt = serde_json::from_str(&receipt_bytes)?;
+
+    //     println!("Receipt: {:?}", receipt);
+
+    //     let groth_16 = receipt.inner.groth16()?;
+
+    //     println!("Groth16 proof: {:?}", groth_16);
+    //     Ok(())
+    // }
 }

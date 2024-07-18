@@ -2,11 +2,9 @@
 
 use risc0_zkvm::{guest::env, serde};
 
-use ark_bn254::{Bn254, Fr, G1Projective, G2Projective};
+use ark_bn254::{Bn254, G1Projective, G2Projective};
 use ark_ec::{pairing::Pairing, Group};
-use ark_ff::PrimeField;
 use ark_serialize::CanonicalDeserialize;
-use sha2::{Digest, Sha384};
 
 risc0_zkvm::guest::entry!(main);
 fn main() {
@@ -18,7 +16,7 @@ fn main() {
     let image_id: [u32; 8] = env::read::<[u32; 8]>();
 
     if let Some(pk) = old_pubkey {
-        println!("old pubkey: {:?}", pk);
+        println!("Verifying assumption");
         env::verify(image_id, &serde::to_vec(&pk).unwrap()).unwrap();
     }
 
