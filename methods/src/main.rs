@@ -20,7 +20,7 @@ use std::io::Write;
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
 pub fn main() -> Result<(), anyhow::Error> {
-    let receipt_bytes = std::fs::read_to_string("/Users/maksimdimitrov/Projects/Hedera/hedera-stark-recursive-proofs-poc/methods/examples/receipt.json")?;
+    let receipt_bytes = std::fs::read_to_string("methods/examples/receipt.json")?;
     let receipt: Receipt = serde_json::from_str(&receipt_bytes)?;
 
     // Encode the seal with the selector.
