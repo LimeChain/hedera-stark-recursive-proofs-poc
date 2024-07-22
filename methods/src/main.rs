@@ -67,10 +67,10 @@ pub fn main() -> Result<(), anyhow::Error> {
 
     succinct_receipt.verify(PROOFS_ID)?;
 
-    let ident_receipt: SuccinctReceipt<ReceiptClaim> =
-        identity_p254(succinct_receipt.inner.succinct()?).unwrap();
-    let seal_bytes = ident_receipt.get_seal_bytes();
-    let seal = stark_to_snark(&seal_bytes)?.to_vec();
+    // let ident_receipt: SuccinctReceipt<ReceiptClaim> =
+    //     identity_p254(succinct_receipt.inner.succinct()?).unwrap();
+    // let seal_bytes = ident_receipt.get_seal_bytes();
+    // let seal = stark_to_snark(&seal_bytes)?.to_vec();
 
     // let groth16_receipt = Receipt::new(
     //     InnerReceipt::Groth16(Groth16Receipt::new(
@@ -81,9 +81,10 @@ pub fn main() -> Result<(), anyhow::Error> {
     //     journal.clone(),
     // );
     let groth16_receipt = prover.compress(&ProverOpts::succinct(), &succinct_receipt)?;
-
+    groth16_receipt.verify(PROOFS_ID)?;
     let _ = save_receipt(&groth16_receipt, "groth16_receipt");
 
+    let seal = groth16_receipt.inner.groth16()?.seal.clone();
     let journal = groth16_receipt.journal.bytes.clone();
     let calldata = vec![Token::Bytes(journal), Token::Bytes(seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
