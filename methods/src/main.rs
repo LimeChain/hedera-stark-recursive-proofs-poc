@@ -44,7 +44,7 @@ pub fn main() -> Result<(), anyhow::Error> {
     let assumption_receipt = prover.prove(env_0, PROOFS_ELF)?.receipt;
     assumption_receipt.verify(PROOFS_ID)?;
 
-    save_receipt(&assumption_receipt, "assumption_receipt");
+    let _ = save_receipt(&assumption_receipt, "assumption_receipt");
 
     let composite_inputs: SignatureInput = generate_inputs(Some(pk_0.clone()))?;
     let env_1 = ExecutorEnv::builder()
@@ -81,6 +81,9 @@ pub fn main() -> Result<(), anyhow::Error> {
     //     journal.clone(),
     // );
     let groth16_receipt = prover.compress(&ProverOpts::succinct(), &succinct_receipt)?;
+
+    let _ = save_receipt(&groth16_receipt, "groth16_receipt");
+
     let journal = groth16_receipt.journal.bytes.clone();
     let calldata = vec![Token::Bytes(journal), Token::Bytes(seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
