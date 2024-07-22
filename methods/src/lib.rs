@@ -15,7 +15,7 @@
 //! Generated crate containing the image ID and ELF binary of the build guest.
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
-use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt, VerifierContext};
+use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
@@ -50,12 +50,12 @@ pub fn verify_signature(
 
     println!("Proving the signature");
     let proof = prover
-        .prove_with_opts(env, PROOFS_ELF, &ProverOpts::succinct())
+        .prove(env, PROOFS_ELF)
         .unwrap();
 
     let receipt = proof.receipt;
 
-    println!("Verifying the proof");
+    println!("Verifying the receipt");
     receipt.verify(PROOFS_ID).unwrap();
 
     let new_pubkey: Vec<u8> = receipt.journal.decode().unwrap();
