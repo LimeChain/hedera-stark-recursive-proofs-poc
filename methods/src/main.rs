@@ -16,7 +16,7 @@ use ark_ec::Group;
 use ark_ff::PrimeField;
 use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
-use risc0_zkvm::{default_prover, stark_to_snark, ExecutorEnv, Receipt};
+use risc0_zkvm::{default_prover, recursion::identity_p254, stark_to_snark, ExecutorEnv, Receipt, SuccinctReceipt, ReceiptClaim};
 use sha2::{Digest, Sha384};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
@@ -71,8 +71,9 @@ pub fn main() -> Result<(), anyhow::Error> {
 
     receipt.verify(PROOFS_ID).unwrap();
     // Encode the seal with the selector.
-    let succinct_receipt = receipt.inner.succinct()?;
-    let seal_bytes = succinct_receipt.get_seal_bytes();
+    let succinct_receipt: &SuccinctReceipt<ReceiptClaim> = receipt.inner.succinct()?;
+    let ident_receipt: SuccinctReceipt<ReceiptClaim> = identity_p254(succinct_receipt).unwrap();
+    let seal_bytes = ident_receipt.get_seal_bytes();
 
     let seal = stark_to_snark(&seal_bytes)?.to_vec();
     // let groth16_receipt: Groth16Receipt<ReceiptClaim> = Groth16Receipt::new(
