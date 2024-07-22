@@ -16,20 +16,17 @@ use ark_ec::Group;
 use ark_ff::PrimeField;
 use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
-use risc0_zkvm::{get_prover_server, recursion::identity_p254, stark_to_snark, ExecutorEnv, ProverOpts, Receipt, ReceiptClaim, SuccinctReceipt};
+use risc0_zkvm::{default_prover, get_prover_server, recursion::identity_p254, stark_to_snark, ExecutorEnv, ProverOpts, Receipt, ReceiptClaim, SuccinctReceipt};
 
 use sha2::{Digest, Sha384};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
 pub fn main() -> Result<(), anyhow::Error> {
-    println!("Generate inputs for epoch 0 receipt");
     let (pk_0, msg_0, sig_0) = generate_inputs(None)?;
 
-    let opts = ProverOpts::default();
-    let prover = get_prover_server(&opts)?;
+    let prover = default_prover();
     let no_pk: Option<Vec<u8>> = None;
-    println!("Build environment for epoch 0 receipt");
     let env_0 = ExecutorEnv::builder()
         .write(&(pk_0.clone(), msg_0, sig_0))
         .unwrap()
@@ -40,12 +37,9 @@ pub fn main() -> Result<(), anyhow::Error> {
         .build()
         .unwrap();
 
-    println!("Create assumption receipt for epoch 0");
     let assumption_receipt = prover.prove(env_0, PROOFS_ELF)?.receipt;
 
-    println!("Generate inputs for epoch 1 receipt");
     let composite_inputs: SignatureInput = generate_inputs(Some(pk_0.clone()))?;
-    println!("Build environment for epoch 1 receipt");
     let env_1 = ExecutorEnv::builder()
         .add_assumption(assumption_receipt)
         .write(&composite_inputs)
@@ -57,27 +51,21 @@ pub fn main() -> Result<(), anyhow::Error> {
         .build()
         .unwrap();
 
-    println!("Prove the receipt for epoch 0 and signature for epoch 1");
     let prove_info = prover.prove(env_1, PROOFS_ELF)?;
     let composition_receipt = prove_info.receipt;
 
     // Encode the seal with the selector.
-    println!("Compress the receipt");
     let succinct_receipt = prover.compress(&ProverOpts::default(), &composition_receipt)?;
-    println!("Extract Journal");
     let journal = succinct_receipt.journal.clone();
-    println!("Convert to identity_p254");
     let ident_receipt: SuccinctReceipt<ReceiptClaim> = identity_p254(succinct_receipt.inner.succinct()?).unwrap();
     let seal_bytes = ident_receipt.get_seal_bytes();
-    println!("Convert to snark");
     let seal = stark_to_snark(&seal_bytes)?.to_vec();
 
-    println!("Prepare the output for on-chain verification");
     let calldata = vec![Token::Bytes(journal.bytes), Token::Bytes(seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
 
     // Forge test FFI calls expect hex encoded bytes sent to stdout
-    print!("Send output: {output}");
+    print!("{output}");
     std::io::stdout()
         .flush()
         .context("failed to flush stdout buffer")?;
