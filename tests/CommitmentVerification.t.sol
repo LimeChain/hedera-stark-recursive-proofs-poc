@@ -27,7 +27,6 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
     CommitmentVerification public commitmentVerification;
 
     bytes journal;
-    bytes32 post_state_digest;
     bytes seal;
 
     function setUp() public {
@@ -42,6 +41,8 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         (journal, seal) =
             abi.decode(vm.ffi(imageRunnerInput), (bytes, bytes));
 
+        console2.logString("journal");
+        console2.logBytes(journal);
     }
 
     function test_works() public {

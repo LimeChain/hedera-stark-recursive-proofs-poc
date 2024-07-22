@@ -15,12 +15,12 @@
 //! Generated crate containing the image ID and ELF binary of the build guest.
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
-use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
 use ark_bn254::{Fr, G1Projective, G2Projective};
 use ark_ec::Group;
 use ark_ff::PrimeField;
 use ark_serialize::CanonicalSerialize;
 use ark_std::UniformRand;
+use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
 use sha2::{Digest, Sha384};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
@@ -55,9 +55,7 @@ pub fn verify_signature(
     let prover = default_prover();
 
     println!("Proving the signature");
-    let proof = prover
-        .prove(env, PROOFS_ELF)
-        .unwrap();
+    let proof = prover.prove(env, PROOFS_ELF).unwrap();
 
     let receipt = proof.receipt;
 
@@ -104,7 +102,6 @@ pub fn generate_inputs() -> Result<crate::SignatureInput, anyhow::Error> {
 
     Ok((pk_new_bytes, message_bytes, signature_bytes))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -207,18 +204,4 @@ mod tests {
 
         Ok(())
     }
-
-    // #[test]
-    // #[ignore]
-    // fn verify_groth16() -> Result<(), anyhow::Error> {
-    //     let receipt_bytes = std::fs::read_to_string("examples/receipt.json")?;
-    //     let receipt: Receipt = serde_json::from_str(&receipt_bytes)?;
-
-    //     println!("Receipt: {:?}", receipt);
-
-    //     let groth_16 = receipt.inner.groth16()?;
-
-    //     println!("Groth16 proof: {:?}", groth_16);
-    //     Ok(())
-    // }
 }
