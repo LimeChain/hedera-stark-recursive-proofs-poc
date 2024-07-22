@@ -16,6 +16,12 @@
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
+use ark_bn254::{Fr, G1Projective, G2Projective};
+use ark_ec::Group;
+use ark_ff::PrimeField;
+use ark_serialize::CanonicalSerialize;
+use ark_std::UniformRand;
+use sha2::{Digest, Sha384};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
@@ -64,6 +70,41 @@ pub fn verify_signature(
 
     receipt
 }
+
+pub fn generate_inputs() -> Result<crate::SignatureInput, anyhow::Error> {
+    let g1_gen: G1Projective = G1Projective::generator();
+    let g2_gen: G2Projective = G2Projective::generator();
+
+    let mut rng = ark_std::test_rng();
+    let s1 = Fr::rand(&mut rng);
+    let s2 = Fr::rand(&mut rng);
+
+    let pk_old: G2Projective = g2_gen * s1;
+    let pk_new: G2Projective = g2_gen * s2;
+
+    let mut pk_old_bytes: Vec<u8> = Vec::new();
+    pk_old.serialize_compressed(&mut pk_old_bytes).unwrap();
+
+    let mut pk_new_bytes: Vec<u8> = Vec::new();
+    pk_new.serialize_compressed(&mut pk_new_bytes).unwrap();
+
+    let mut hasher = Sha384::new();
+    hasher.update(pk_old_bytes);
+    let message_hash = hasher.finalize();
+    let message: G1Projective = g1_gen * Fr::from_le_bytes_mod_order(message_hash.as_slice());
+    let mut message_bytes: Vec<u8> = Vec::new();
+    message.serialize_compressed(&mut message_bytes).unwrap();
+
+    let signature: G1Projective = message * s2;
+
+    let mut signature_bytes: Vec<u8> = Vec::new();
+    signature
+        .serialize_compressed(&mut signature_bytes)
+        .unwrap();
+
+    Ok((pk_new_bytes, message_bytes, signature_bytes))
+}
+
 
 #[cfg(test)]
 mod tests {
