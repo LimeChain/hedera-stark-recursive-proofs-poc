@@ -80,7 +80,7 @@ pub fn main() -> Result<(), anyhow::Error> {
     //     )),
     //     journal.clone(),
     // );
-    let groth16_receipt = prover.compress(&ProverOpts::groth16(), &succinct_receipt)?;
+    let groth16_receipt = prover.compress(&ProverOpts::succinct(), &succinct_receipt)?;
     let journal = groth16_receipt.journal.bytes.clone();
     let calldata = vec![Token::Bytes(journal), Token::Bytes(seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
