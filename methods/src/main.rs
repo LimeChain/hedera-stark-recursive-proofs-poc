@@ -16,7 +16,7 @@ use ark_ec::Group;
 use ark_ff::PrimeField;
 use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
-use ethers::abi::{AbiEncode, Token};
+use ethers::abi::Token;
 use methods::{PROOFS_ELF, PROOFS_ID};
 use risc0_ethereum_contracts::groth16::encode;
 use risc0_zkvm::{
@@ -119,10 +119,10 @@ fn generate_inputs(pk: Option<Vec<u8>>) -> Result<crate::SignatureInput, anyhow:
     pk_new.serialize_compressed(&mut pk_new_bytes).unwrap();
 
     let mut hasher = Sha384::new();
-    let msg_bytes = if pk.is_none() {
-        pk_old_bytes
+    let msg_bytes = if let Some(pk_value) = pk {
+        pk_value
     } else {
-        pk.unwrap()
+        pk_old_bytes
     };
     hasher.update(msg_bytes);
     let message_hash = hasher.finalize();
@@ -146,7 +146,7 @@ fn save_receipt(receipt: &Receipt, file_name: &str) -> Result<(), anyhow::Error>
     let mut file = File::create(format!("examples/{file_name}.json"))?;
 
     // Write the serialized string to the file
-    file.write_all(&receipt_bytes.as_bytes())?;
+    file.write_all(receipt_bytes.as_bytes())?;
 
     Ok(())
 }
