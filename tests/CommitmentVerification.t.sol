@@ -42,12 +42,9 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         imageRunnerInput[i++] = "cuda";
         (journal, seal) =
             abi.decode(vm.ffi(imageRunnerInput), (bytes, bytes));
-
-        console2.logString("journal");
-        console2.logBytes(journal);
     }
 
-    function test_works() public {
-      commitmentVerification.verify(journal, seal);
+    function test_works() public view {
+        commitmentVerification.verify(journal, seal);
     }
 }
