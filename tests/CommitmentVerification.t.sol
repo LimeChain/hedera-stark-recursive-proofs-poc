@@ -38,6 +38,8 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         imageRunnerInput[i++] = "cargo";
         imageRunnerInput[i++] = "run";
         imageRunnerInput[i++] = "--release";
+        imageRunnerInput[i++] = "-F";
+        imageRunnerInput[i++] = "cuda";
         (journal, seal) =
             abi.decode(vm.ffi(imageRunnerInput), (bytes, bytes));
 
