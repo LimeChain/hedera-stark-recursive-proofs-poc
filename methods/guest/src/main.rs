@@ -16,7 +16,6 @@ fn main() {
     let image_id: [u32; 8] = env::read::<[u32; 8]>();
 
     if let Some(pk) = old_pubkey {
-        println!("Verifying assumption");
         env::verify(image_id, &serde::to_vec(&pk).unwrap()).unwrap();
     }
 
