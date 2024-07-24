@@ -74,7 +74,7 @@ pub fn main() -> Result<(), anyhow::Error> {
     //     journal_bytes.clone(),
     // );
 
-    let groth16_receipt = prover::compress(ProverOpts::groth16(), &succinct_receipt)?;
+    let groth16_receipt = prover.compress(&ProverOpts::groth16(), &succinct_receipt)?;
     let journal_bytes = groth16_receipt.journal.bytes.clone();
     let seal = groth16_receipt.inner.groth16()?.seal.clone();
 
