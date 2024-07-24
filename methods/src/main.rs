@@ -6,11 +6,9 @@ use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
 use ethers::abi::Token;
 use methods::{PROOFS_ELF, PROOFS_ID};
-use risc0_ethereum_contracts::groth16::encode;
+use risc0_ethereum_contracts::groth16::{self, encode};
 use risc0_zkvm::{
-    default_prover, recursion::identity_p254, sha::Digestible, stark_to_snark, ExecutorEnv,
-    Groth16Receipt, Groth16ReceiptVerifierParameters, InnerReceipt, ProverOpts, Receipt,
-    ReceiptClaim, SuccinctReceipt,
+    default_prover, recursion::identity_p254, sha::Digestible, stark_to_snark, ExecutorEnv, Groth16Receipt, Groth16ReceiptVerifierParameters, InnerReceipt, Journal, ProverOpts, Receipt, ReceiptClaim, SuccinctReceipt
 };
 use std::{env, fs::File};
 use sha2::{Digest, Sha384};
@@ -61,24 +59,28 @@ pub fn main() -> Result<(), anyhow::Error> {
     save_receipt(&succinct_receipt, "succinct_receipt")?;
 
     succinct_receipt.verify(PROOFS_ID)?;
-    let journal_bytes = composition_receipt.journal.bytes.clone();
-    let ident_receipt: SuccinctReceipt<ReceiptClaim> =
-        identity_p254(succinct_receipt.inner.succinct()?).unwrap();
-    let seal_bytes = ident_receipt.get_seal_bytes();
-    let seal = stark_to_snark(&seal_bytes)?.to_vec();
+    // let journal_bytes = succinct_receipt.journal.bytes.clone();
+    // let ident_receipt: SuccinctReceipt<ReceiptClaim> =
+    //     identity_p254(succinct_receipt.inner.succinct()?).unwrap();
+    // let seal_bytes = ident_receipt.get_seal_bytes();
+    // let seal = stark_to_snark(&seal_bytes)?.to_vec();
 
-    let groth16_receipt = Receipt::new(
-        InnerReceipt::Groth16(Groth16Receipt::new(
-            seal.clone(),
-            ident_receipt.claim.clone(),
-            Groth16ReceiptVerifierParameters::default().digest(),
-        )),
-        journal_bytes.clone(),
-    );
+    // let groth16_receipt = Receipt::new(
+    //     InnerReceipt::Groth16(Groth16Receipt::new(
+    //         seal.clone(),
+    //         ident_receipt.claim.clone(),
+    //         Groth16ReceiptVerifierParameters::default().digest(),
+    //     )),
+    //     journal_bytes.clone(),
+    // );
+
+    let groth16_receipt = prover::compress(ProverOpts::groth16(), &succinct_receipt)?;
+    let journal_bytes = groth16_receipt.journal.bytes.clone();
+    let seal = groth16_receipt.inner.groth16()?.seal.clone();
 
     let _ = save_receipt(&groth16_receipt, "groth16_receipt");
 
-    let calldata = vec![Token::Bytes(journal_bytes), Token::Bytes(encode(seal)?)];
+    let calldata = vec![Token::Bytes(journal_bytes), Token::Bytes(seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
 
     // Forge test FFI calls expect hex encoded bytes sent to stdout
