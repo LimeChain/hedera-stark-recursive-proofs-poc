@@ -40,11 +40,13 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         imageRunnerInput[i++] = "--release";
         imageRunnerInput[i++] = "-F";
         imageRunnerInput[i++] = "cuda";
+
         (journal, seal) =
             abi.decode(vm.ffi(imageRunnerInput), (bytes, bytes));
     }
 
     function test_works() public view {
         commitmentVerification.verify(journal, seal);
+
     }
 }
