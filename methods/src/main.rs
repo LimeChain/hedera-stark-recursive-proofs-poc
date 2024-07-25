@@ -6,19 +6,14 @@ use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
 use ethers::abi::Token;
 use methods::{PROOFS_ELF, PROOFS_ID};
-use risc0_ethereum_contracts::groth16::{self, encode};
-use risc0_zkvm::{
-    default_prover, recursion::identity_p254, sha::Digestible, stark_to_snark, ExecutorEnv,
-    Groth16Receipt, Groth16ReceiptVerifierParameters, InnerReceipt, ProverOpts, Receipt,
-    ReceiptClaim, SuccinctReceipt,
-};
-use std::{env, fs::File};
+use risc0_ethereum_contracts::groth16;
+use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha2::{Digest, Sha384};
+use std::{env, fs::File};
 
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
 pub fn main() -> Result<(), anyhow::Error> {
-
     if env::var("RUN_DEMO").is_ok() {
         run_demo()?;
     } else {
@@ -127,19 +122,9 @@ fn run_prover() -> Result<(), anyhow::Error> {
 
     let _ = save_receipt(&groth16_receipt, "groth16_receipt");
 
-    let journal = groth16_receipt.journal.bytes.clone();
-    let groth16 = groth16_receipt.inner.groth16()?;
-    let seal = groth16.seal.clone();
-    let encoded_seal = encode(seal)?;
+    groth16_receipt.verify(PROOFS_ID)?;
 
-    let calldata = vec![Token::Bytes(journal), Token::Bytes(encoded_seal)];
-    let output = hex::encode(ethers::abi::encode(&calldata));
-
-    // Forge test FFI calls expect hex encoded bytes sent to stdout
-    print!("{output}");
-    std::io::stdout()
-        .flush()
-        .context("failed to flush stdout buffer")?;
+    send_calldata(groth16_receipt)?;
 
     Ok(())
 }
@@ -156,10 +141,23 @@ fn run_demo() -> Result<(), anyhow::Error> {
     succinct_receipt.verify(PROOFS_ID)?;
     groth16_receipt.verify(PROOFS_ID)?;
 
+    send_calldata(groth16_receipt)?;
+
+    Ok(())
+}
+
+fn read_receipt(file_name: &str) -> Result<Receipt, anyhow::Error> {
+    let receipt: Receipt = serde_json::from_str(&std::fs::read_to_string(format!(
+        "receipts/{file_name}.json"
+    ))?)?;
+    Ok(receipt)
+}
+
+fn send_calldata(groth16_receipt: Receipt) -> Result<(), anyhow::Error> {
     let journal = groth16_receipt.journal.bytes.clone();
     let groth16 = groth16_receipt.inner.groth16()?;
     let seal = groth16.seal.clone();
-    let encoded_seal = encode(seal)?;
+    let encoded_seal = groth16::encode(seal)?;
 
     let calldata = vec![Token::Bytes(journal), Token::Bytes(encoded_seal)];
     let output = hex::encode(ethers::abi::encode(&calldata));
@@ -171,11 +169,4 @@ fn run_demo() -> Result<(), anyhow::Error> {
         .context("failed to flush stdout buffer")?;
 
     Ok(())
-}
-
-fn read_receipt(file_name: &str) -> Result<Receipt, anyhow::Error> {
-    let receipt: Receipt = serde_json::from_str(
-        &std::fs::read_to_string(format!("receipts/{file_name}.json"))?,
-    )?;
-    Ok(receipt)
 }
