@@ -32,7 +32,7 @@ fn main() {
     assert_eq!(pairing_1, pairing_2);
 
     let diff = env::cycle_count();
-    env::log(&format!("cycle count after BN254 verify: {}", diff - start));
+    // env::log(&format!("cycle count after BN254 verify: {}", diff - start));
 
     // Commit pubkey
     env::commit(&pubkey_bytes);
