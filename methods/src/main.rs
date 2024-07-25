@@ -81,7 +81,7 @@ fn save_receipt(receipt: &Receipt, file_name: &str) -> Result<(), anyhow::Error>
 
 fn run_prover() -> Result<(), anyhow::Error> {
     // Fetch assumption receipt path passed as inline argument
-    let arg = env::args().next();
+    let arg = env::args().nth(1);
 
     // Initialize the prover
     let prover: std::rc::Rc<dyn Prover> = default_prover();
