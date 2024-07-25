@@ -33,13 +33,12 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         IRiscZeroVerifier verifier = deployRiscZeroVerifier();
         commitmentVerification = new CommitmentVerification(verifier);
 
-        string[] memory imageRunnerInput = new string[](5);
+        string[] memory imageRunnerInput = new string[](4);
         uint256 i = 0;
+        imageRunnerInput[i++] = "RUN_DEMO=true";
         imageRunnerInput[i++] = "cargo";
         imageRunnerInput[i++] = "run";
         imageRunnerInput[i++] = "--release";
-        imageRunnerInput[i++] = "-F";
-        imageRunnerInput[i++] = "cuda";
 
         bytes memory data = vm.ffi(imageRunnerInput);
 
@@ -49,7 +48,7 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
             abi.decode(data, (bytes, bytes));
     }
 
-    function testProver() public view {
+    function testDemo() public view {
         commitmentVerification.verify(journal, seal);
     }
 }

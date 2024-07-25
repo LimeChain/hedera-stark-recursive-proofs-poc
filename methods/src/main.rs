@@ -143,14 +143,14 @@ fn run_prover() -> Result<(), anyhow::Error> {
 
 fn run_demo() -> Result<(), anyhow::Error> {
     // fetch receipts from the receipts directory
-    let assumption_receipt: Receipt = read_receipt("assumption_receipt")?;
-    let composition_receipt: Receipt = read_receipt("composition_receipt")?;
-    let succinct_receipt: Receipt = read_receipt("succinct_receipt")?;
+    // let assumption_receipt: Receipt = read_receipt("assumption_receipt")?;
+    // let composition_receipt: Receipt = read_receipt("composition_receipt")?;
+    // let succinct_receipt: Receipt = read_receipt("succinct_receipt")?;
     let groth16_receipt: Receipt = read_receipt("groth16_receipt")?;
 
-    assumption_receipt.verify(PROOFS_ID)?;
-    composition_receipt.verify(PROOFS_ID)?;
-    succinct_receipt.verify(PROOFS_ID)?;
+    // assumption_receipt.verify(PROOFS_ID)?;
+    // composition_receipt.verify(PROOFS_ID)?;
+    // succinct_receipt.verify(PROOFS_ID)?;
     groth16_receipt.verify(PROOFS_ID)?;
 
     send_calldata(groth16_receipt)?;
@@ -160,7 +160,7 @@ fn run_demo() -> Result<(), anyhow::Error> {
 
 fn read_receipt(file_name: &str) -> Result<Receipt, anyhow::Error> {
     let receipt: Receipt = serde_json::from_str(&std::fs::read_to_string(format!(
-        "receipts/{file_name}.json"
+        "examples/{file_name}.json"
     ))?)?;
     Ok(receipt)
 }
