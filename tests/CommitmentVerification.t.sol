@@ -41,8 +41,12 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         imageRunnerInput[i++] = "-F";
         imageRunnerInput[i++] = "cuda";
 
+        bytes memory data = vm.ffi(imageRunnerInput);
+
+        console2.logBytes(data);
+
         (journal, seal) =
-            abi.decode(vm.ffi(imageRunnerInput), (bytes, bytes));
+            abi.decode(data, (bytes, bytes));
     }
 
     function test_works() public view {
