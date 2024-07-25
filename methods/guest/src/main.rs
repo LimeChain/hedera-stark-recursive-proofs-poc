@@ -9,7 +9,7 @@ use ark_serialize::CanonicalDeserialize;
 risc0_zkvm::guest::entry!(main);
 fn main() {
     // Fetch the input from the environment.
-    let start = env::cycle_count();
+    // let start = env::cycle_count();
 
     let (pubkey_bytes, message_bytes, signature_bytes): (Vec<u8>, Vec<u8>, Vec<u8>) = env::read();
     let old_pubkey: Option<Vec<u8>> = env::read();
@@ -31,7 +31,7 @@ fn main() {
 
     assert_eq!(pairing_1, pairing_2);
 
-    let diff = env::cycle_count();
+    // let diff = env::cycle_count();
     // env::log(&format!("cycle count after BN254 verify: {}", diff - start));
 
     // Commit pubkey

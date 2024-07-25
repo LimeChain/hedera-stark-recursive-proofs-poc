@@ -200,7 +200,7 @@ mod tests {
         let mut file = File::create("examples/receipt.json")?;
 
         // Write the serialized string to the file
-        file.write_all(&receipt_bytes.as_bytes())?;
+        file.write_all(receipt_bytes.as_bytes())?;
 
         Ok(())
     }
