@@ -49,7 +49,7 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
             abi.decode(data, (bytes, bytes));
     }
 
-    function testProver() public view {
+    function test_proverWorkflow() public view {
         commitmentVerification.verify(journal, seal);
     }
 }
