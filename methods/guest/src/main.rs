@@ -12,11 +12,13 @@ fn main() {
     // let start = env::cycle_count();
 
     let (pubkey_bytes, message_bytes, signature_bytes): (Vec<u8>, Vec<u8>, Vec<u8>) = env::read();
-    let old_pubkey: Option<Vec<u8>> = env::read();
+    let public_inputs: Vec<(Vec<u8>, Vec<u8>)> = env::read();
+    let pubkey_0: Vec<u8> = env::read();
     let image_id: [u32; 8] = env::read::<[u32; 8]>();
 
-    if let Some(pk) = old_pubkey {
-        env::verify(image_id, &serde::to_vec(&pk).unwrap()).unwrap();
+    for input in public_inputs {
+        assert_eq!(pubkey_0, input.0); // validate public inputs of assumptions is equal to pubkey_0
+        env::verify(image_id, &serde::to_vec(&input).unwrap()).unwrap();
     }
 
     let pubkey = G2Projective::deserialize_compressed(&pubkey_bytes[..]).unwrap();
@@ -35,5 +37,5 @@ fn main() {
     // env::log(&format!("cycle count after BN254 verify: {}", diff - start));
 
     // Commit pubkey
-    env::commit(&pubkey_bytes);
+    env::commit(&(pubkey_0, pubkey_bytes));
 }

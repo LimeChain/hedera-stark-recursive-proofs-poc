@@ -80,6 +80,7 @@ fn save_receipt(receipt: &Receipt, file_name: &str) -> Result<(), anyhow::Error>
 }
 
 fn run_prover() -> Result<(), anyhow::Error> {
+    let pubkey_0 = hex::decode(env::var("PUBKEY_0")?)?;
     // Fetch assumption receipt path passed as inline argument
     let arg = env::args().nth(1);
 
@@ -90,12 +91,12 @@ fn run_prover() -> Result<(), anyhow::Error> {
     // If not, generate a new assumption receipt
     // If yes, read the receipt from the path and fetch the public key from the journal
     // pubkey_0 is the public key of the first epoch
-    let (pubkey_0, assumption_receipt) = match arg {
-        None => generate_assumption(&prover)?,
+    let (journal, assumption_receipt) = match arg {
+        None => generate_assumption(pubkey_0.clone(), &prover)?,
         Some(receipt_path) => {
             let assumption_receipt: Receipt = read_receipt(&receipt_path)?;
-            let pubkey_0: Vec<u8> = assumption_receipt.journal.decode()?;
-            (pubkey_0, assumption_receipt)
+            let journal: (Vec<u8>, Vec<u8>) = assumption_receipt.journal.decode()?;
+            (journal, assumption_receipt)
         }
     };
 
@@ -106,7 +107,9 @@ fn run_prover() -> Result<(), anyhow::Error> {
         .add_assumption(assumption_receipt)
         .write(&composite_inputs)
         .unwrap()
-        .write(&Some(pubkey_0))
+        .write(&vec![journal]) // List of inputs to be verified in the composition
+        .unwrap()
+        .write(&pubkey_0) // pubkey_0 is the public key of the first epoch
         .unwrap()
         .write(&PROOFS_ID)
         .unwrap()
@@ -142,6 +145,8 @@ fn run_prover() -> Result<(), anyhow::Error> {
 }
 
 fn run_demo() -> Result<(), anyhow::Error> {
+    let inputs = generate_inputs(None)?;
+    println!("Pubkey: {:?}", hex::encode(inputs.0));
     // fetch receipts from the receipts directory
     // let assumption_receipt: Receipt = read_receipt("assumption_receipt")?;
     // let composition_receipt: Receipt = read_receipt("composition_receipt")?;
@@ -184,15 +189,17 @@ fn send_calldata(groth16_receipt: Receipt) -> Result<(), anyhow::Error> {
 }
 
 fn generate_assumption(
+    pubkey_0: Vec<u8>,
     prover: &std::rc::Rc<dyn Prover>,
-) -> Result<(Vec<u8>, Receipt), anyhow::Error> {
-    let (pubkey_0, msg_0, sig_0) = generate_inputs(None)?;
+) -> Result<((Vec<u8>, Vec<u8>), Receipt), anyhow::Error> {
+    let (pubkey_0, msg_0, sig_0) = generate_inputs(Some(pubkey_0))?;
 
-    let no_pk: Option<Vec<u8>> = None;
     let env_0 = ExecutorEnv::builder()
         .write(&(pubkey_0.clone(), msg_0, sig_0))
         .unwrap()
-        .write(&no_pk)
+        .write::<Vec<Vec<u8>>>(&vec![]) // List of inputs to be verified in the assumption
+        .unwrap()
+        .write(&pubkey_0) // pubkey_0 is the public key of the first epoch
         .unwrap()
         .write(&PROOFS_ID)
         .unwrap()
@@ -202,7 +209,9 @@ fn generate_assumption(
     let assumption_receipt = prover.prove(env_0, PROOFS_ELF)?.receipt;
     assumption_receipt.verify(PROOFS_ID)?;
 
+    let journal: (Vec<u8>, Vec<u8>) = assumption_receipt.journal.decode()?;
+
     let _ = save_receipt(&assumption_receipt, "assumption_receipt");
 
-    Ok((pubkey_0, assumption_receipt))
+    Ok((journal, assumption_receipt))
 }
