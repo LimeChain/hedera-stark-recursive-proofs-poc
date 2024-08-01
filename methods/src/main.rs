@@ -23,13 +23,10 @@ pub fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn generate_inputs(pk: Option<Vec<u8>>) -> Result<crate::SignatureInput, anyhow::Error> {
+fn generate_inputs(message_bytes: Vec<u8>, privkey_new: Fr) -> Result<crate::SignatureInput, anyhow::Error> {
     let g1_gen: G1Projective = G1Projective::generator();
     let g2_gen: G2Projective = G2Projective::generator();
 
-    let mut rng = ark_std::test_rng();
-
-    let privkey_new = Fr::rand(&mut rng);
     let pubkey_new: G2Projective = g2_gen * privkey_new;
 
     let mut pubkey_new_bytes: Vec<u8> = Vec::new();
@@ -38,18 +35,6 @@ fn generate_inputs(pk: Option<Vec<u8>>) -> Result<crate::SignatureInput, anyhow:
         .unwrap();
 
     let mut hasher = Sha384::new();
-    let message_bytes = if let Some(pk_value) = pk {
-        pk_value
-    } else {
-        let privkey_old = Fr::rand(&mut rng);
-        let pubkey_old: G2Projective = g2_gen * privkey_old;
-        let mut pubkey_old_bytes: Vec<u8> = Vec::new();
-        pubkey_old
-            .serialize_compressed(&mut pubkey_old_bytes)
-            .unwrap();
-
-        pubkey_old_bytes
-    };
     hasher.update(message_bytes);
     let message_hash = hasher.finalize();
     let g1_message: G1Projective = g1_gen * Fr::from_le_bytes_mod_order(message_hash.as_slice());
@@ -84,6 +69,8 @@ fn run_prover() -> Result<(), anyhow::Error> {
     // Fetch assumption receipt path passed as inline argument
     let arg = env::args().nth(1);
 
+    let (privkey_1, privkey_2) = generate_public_keys()?;
+
     // Initialize the prover
     let prover: std::rc::Rc<dyn Prover> = default_prover();
 
@@ -92,7 +79,7 @@ fn run_prover() -> Result<(), anyhow::Error> {
     // If yes, read the receipt from the path and fetch the public key from the journal
     // pubkey_0 is the public key of the first epoch
     let (journal, assumption_receipt) = match arg {
-        None => generate_assumption(pubkey_0.clone(), &prover)?,
+        None => generate_assumption(pubkey_0.clone(), privkey_1, &prover)?,
         Some(receipt_path) => {
             let assumption_receipt: Receipt = read_receipt(&receipt_path)?;
             let journal: (Vec<u8>, Vec<u8>) = assumption_receipt.journal.decode()?;
@@ -101,7 +88,7 @@ fn run_prover() -> Result<(), anyhow::Error> {
     };
 
     // Generate the composite inputs
-    let composite_inputs: SignatureInput = generate_inputs(Some(pubkey_0.clone()))?;
+    let composite_inputs: SignatureInput = generate_inputs(journal.1.clone(), privkey_2)?;
     // Create the environment for the composition circuit
     let env_1 = ExecutorEnv::builder()
         .add_assumption(assumption_receipt)
@@ -145,17 +132,8 @@ fn run_prover() -> Result<(), anyhow::Error> {
 }
 
 fn run_demo() -> Result<(), anyhow::Error> {
-    let inputs = generate_inputs(None)?;
-    println!("Pubkey: {:?}", hex::encode(inputs.0));
-    // fetch receipts from the receipts directory
-    // let assumption_receipt: Receipt = read_receipt("assumption_receipt")?;
-    // let composition_receipt: Receipt = read_receipt("composition_receipt")?;
-    // let succinct_receipt: Receipt = read_receipt("succinct_receipt")?;
     let groth16_receipt: Receipt = read_receipt("groth16_receipt")?;
 
-    // assumption_receipt.verify(PROOFS_ID)?;
-    // composition_receipt.verify(PROOFS_ID)?;
-    // succinct_receipt.verify(PROOFS_ID)?;
     groth16_receipt.verify(PROOFS_ID)?;
 
     send_calldata(groth16_receipt)?;
@@ -188,14 +166,17 @@ fn send_calldata(groth16_receipt: Receipt) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+type AssumptionResult = ((Vec<u8>, Vec<u8>), Receipt);
+
 fn generate_assumption(
     pubkey_0: Vec<u8>,
+    privkey_1: Fr,
     prover: &std::rc::Rc<dyn Prover>,
-) -> Result<((Vec<u8>, Vec<u8>), Receipt), anyhow::Error> {
-    let (pubkey_0, msg_0, sig_0) = generate_inputs(Some(pubkey_0))?;
+) -> Result<AssumptionResult, anyhow::Error> {
+    let inputs = generate_inputs(pubkey_0.clone(), privkey_1)?;
 
     let env_0 = ExecutorEnv::builder()
-        .write(&(pubkey_0.clone(), msg_0, sig_0))
+        .write(&inputs)
         .unwrap()
         .write::<Vec<Vec<u8>>>(&vec![]) // List of inputs to be verified in the assumption
         .unwrap()
@@ -214,4 +195,13 @@ fn generate_assumption(
     let _ = save_receipt(&assumption_receipt, "assumption_receipt");
 
     Ok((journal, assumption_receipt))
+}
+
+fn generate_public_keys() -> Result<(Fr, Fr), anyhow::Error> {
+    let mut rng = ark_std::test_rng();
+    let _ = Fr::rand(&mut rng); // This is the private key for the zero epoch, we don't need it here
+    let privkey_1 = Fr::rand(&mut rng);
+    let privkey_2 = Fr::rand(&mut rng);
+
+    Ok((privkey_1, privkey_2))
 }
