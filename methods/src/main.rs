@@ -1,3 +1,5 @@
+include!(concat!(env!("OUT_DIR"), "/methods.rs"));
+
 use anyhow::Context;
 use ark_bn254::{Fr, G1Projective, G2Projective};
 use ark_ec::Group;
@@ -5,25 +7,39 @@ use ark_ff::PrimeField;
 use ark_serialize::{CanonicalSerialize, Write};
 use ark_std::UniformRand;
 use ethers::abi::Token;
-use methods::{PROOFS_ELF, PROOFS_ID};
 use risc0_ethereum_contracts::groth16;
 use risc0_zkvm::{default_prover, ExecutorEnv, Prover, ProverOpts, Receipt};
 use sha2::{Digest, Sha384};
 use std::{env, fs::File};
 
+mod cli;
+
 pub type SignatureInput = (Vec<u8>, Vec<u8>, Vec<u8>);
 
 pub fn main() -> Result<(), anyhow::Error> {
-    if env::var("RUN_DEMO").is_ok() {
+    let matches: clap::ArgMatches = cli::initialize().get_matches();
+
+    if matches.get_flag("demo") {
         run_demo()?;
     } else {
-        run_prover()?;
+        let pubkey_0_hex = matches
+        .get_one::<String>("pubkey0")
+        .unwrap()
+        .trim_start_matches("0x")
+        .to_owned();
+    let pubkey_0: Vec<u8> = hex::decode(pubkey_0_hex)?;
+    let receipt: Option<&String> = matches.get_one::<String>("receipt");
+
+        run_prover(pubkey_0, receipt)?;
     }
 
     Ok(())
 }
 
-fn generate_inputs(message_bytes: Vec<u8>, privkey_new: Fr) -> Result<crate::SignatureInput, anyhow::Error> {
+fn generate_inputs(
+    message_bytes: Vec<u8>,
+    privkey_new: Fr,
+) -> Result<crate::SignatureInput, anyhow::Error> {
     let g1_gen: G1Projective = G1Projective::generator();
     let g2_gen: G2Projective = G2Projective::generator();
 
@@ -64,11 +80,7 @@ fn save_receipt(receipt: &Receipt, file_name: &str) -> Result<(), anyhow::Error>
     Ok(())
 }
 
-fn run_prover() -> Result<(), anyhow::Error> {
-    let pubkey_0 = hex::decode(env::var("PUBKEY_0")?)?;
-    // Fetch assumption receipt path passed as inline argument
-    let arg = env::args().nth(1);
-
+fn run_prover(pubkey_0: Vec<u8>, receipt_path: Option<&String>) -> Result<(), anyhow::Error> {
     let (privkey_1, privkey_2) = generate_public_keys()?;
 
     // Initialize the prover
@@ -78,10 +90,10 @@ fn run_prover() -> Result<(), anyhow::Error> {
     // If not, generate a new assumption receipt
     // If yes, read the receipt from the path and fetch the public key from the journal
     // pubkey_0 is the public key of the first epoch
-    let (journal, assumption_receipt) = match arg {
+    let (journal, assumption_receipt) = match receipt_path {
         None => generate_assumption(pubkey_0.clone(), privkey_1, &prover)?,
-        Some(receipt_path) => {
-            let assumption_receipt: Receipt = read_receipt(&receipt_path)?;
+        Some(path) => {
+            let assumption_receipt: Receipt = read_receipt(&path)?;
             let journal: (Vec<u8>, Vec<u8>) = assumption_receipt.journal.decode()?;
             (journal, assumption_receipt)
         }
@@ -132,7 +144,7 @@ fn run_prover() -> Result<(), anyhow::Error> {
 }
 
 fn run_demo() -> Result<(), anyhow::Error> {
-    let groth16_receipt: Receipt = read_receipt("groth16_receipt")?;
+    let groth16_receipt: Receipt = read_receipt("examples/groth16_receipt.json")?;
 
     groth16_receipt.verify(PROOFS_ID)?;
 
@@ -141,10 +153,8 @@ fn run_demo() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn read_receipt(file_name: &str) -> Result<Receipt, anyhow::Error> {
-    let receipt: Receipt = serde_json::from_str(&std::fs::read_to_string(format!(
-        "examples/{file_name}.json"
-    ))?)?;
+fn read_receipt(file_path: &str) -> Result<Receipt, anyhow::Error> {
+    let receipt: Receipt = serde_json::from_str(&std::fs::read_to_string(file_path)?)?;
     Ok(receipt)
 }
 
