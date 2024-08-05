@@ -9,7 +9,7 @@ pub fn initialize() -> Command {
                 .long("pubkey0")
                 .value_name("PUBKEY0")
                 .help("The pubkey for epoch 0")
-                .required(true),
+                .required_unless_present("demo"),
         )
         .arg(
             Arg::new("receipt")

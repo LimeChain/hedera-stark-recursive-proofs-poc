@@ -33,11 +33,13 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         IRiscZeroVerifier verifier = deployRiscZeroVerifier();
         commitmentVerification = new CommitmentVerification(verifier);
 
-        string[] memory imageRunnerInput = new string[](3);
+        string[] memory imageRunnerInput = new string[](5);
         uint256 i = 0;
         imageRunnerInput[i++] = "cargo";
         imageRunnerInput[i++] = "run";
         imageRunnerInput[i++] = "--release";
+        imageRunnerInput[i++] = "--";
+        imageRunnerInput[i++] = "--demo";
 
         bytes memory data = vm.ffi(imageRunnerInput);
 

@@ -33,13 +33,16 @@ contract CommitmentVerificationTest is RiscZeroCheats, Test {
         IRiscZeroVerifier verifier = deployRiscZeroVerifier();
         commitmentVerification = new CommitmentVerification(verifier);
 
-        string[] memory imageRunnerInput = new string[](5);
+        string[] memory imageRunnerInput = new string[](8);
         uint256 i = 0;
         imageRunnerInput[i++] = "cargo";
         imageRunnerInput[i++] = "run";
         imageRunnerInput[i++] = "--release";
         imageRunnerInput[i++] = "-F";
         imageRunnerInput[i++] = "cuda";
+        imageRunnerInput[i++] = "--";
+        imageRunnerInput[i++] = "--pubkey0";
+        imageRunnerInput[i++] = "8cdd23bfd1e38ddb4ae9539f5947847bf56d3f06404d6f385758a4faa7443507e96b00da1a13d84b2fdf1a65958201352c69896103fc76a6b3c967808ad099ae";
 
         bytes memory data = vm.ffi(imageRunnerInput);
 
