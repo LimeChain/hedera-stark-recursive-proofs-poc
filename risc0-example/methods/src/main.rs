@@ -23,12 +23,12 @@ pub fn main() -> Result<(), anyhow::Error> {
         run_demo()?;
     } else {
         let pubkey_0_hex = matches
-        .get_one::<String>("pubkey0")
-        .unwrap()
-        .trim_start_matches("0x")
-        .to_owned();
-    let pubkey_0: Vec<u8> = hex::decode(pubkey_0_hex)?;
-    let receipt: Option<&String> = matches.get_one::<String>("receipt");
+            .get_one::<String>("pubkey0")
+            .unwrap()
+            .trim_start_matches("0x")
+            .to_owned();
+        let pubkey_0: Vec<u8> = hex::decode(pubkey_0_hex)?;
+        let receipt: Option<&String> = matches.get_one::<String>("receipt");
 
         run_prover(pubkey_0, receipt)?;
     }

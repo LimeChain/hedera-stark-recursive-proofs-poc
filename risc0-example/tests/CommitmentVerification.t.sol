@@ -16,10 +16,10 @@
 
 pragma solidity ^0.8.20;
 
-import {RiscZeroCheats} from "risc0/test/RiscZeroCheats.sol";
-import {console2} from "forge-std/console2.sol";
-import {Test} from "forge-std/Test.sol";
-import {IRiscZeroVerifier} from "risc0/IRiscZeroVerifier.sol";
+import {RiscZeroCheats} from "lib/risc0-ethereum/contracts/src/test/RiscZeroCheats.sol";
+import {console2} from "lib/forge-std/src/console2.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
+import {IRiscZeroVerifier} from "lib/risc0-ethereum/contracts/src/IRiscZeroVerifier.sol";
 import {CommitmentVerification} from "../contracts/CommitmentVerification.sol";
 import {Elf} from "./Elf.sol"; // auto-generated contract after running `cargo build`.
 

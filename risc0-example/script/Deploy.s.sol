@@ -16,11 +16,11 @@
 
 pragma solidity ^0.8.20;
 
-import {Script} from "forge-std/Script.sol";
-import {console2} from "forge-std/console2.sol";
-import {IRiscZeroVerifier} from "risc0/IRiscZeroVerifier.sol";
-import {RiscZeroGroth16Verifier} from "risc0/groth16/RiscZeroGroth16Verifier.sol";
-import {ControlID} from "risc0/groth16/ControlID.sol";
+import {Script} from "lib/forge-std/src/Script.sol";
+import {console2} from "lib/forge-std/src/console2.sol";
+import {IRiscZeroVerifier} from "lib/risc0-ethereum/contracts/src//IRiscZeroVerifier.sol";
+import {RiscZeroGroth16Verifier} from "lib/risc0-ethereum/contracts/src//groth16/RiscZeroGroth16Verifier.sol";
+import {ControlID} from "lib/risc0-ethereum/contracts/src//groth16/ControlID.sol";
 
 import {CommitmentVerification} from "../contracts/CommitmentVerification.sol";
 

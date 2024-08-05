@@ -1,10 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
-        "sp1-example/program/Cargo.toml",
-        "sp1-example/script/Cargo.toml",
-        "risc0-example/methods/Cargo.toml",
-        "risc0-example/methods/guest/Cargo.toml",
-        "risc0-example/Cargo.toml"
+        "program/Cargo.toml",
+        "script/Cargo.toml"
     ],
     "rust-analyzer.check.overrideCommand": [
         "cargo",
