@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test, console} from "../../lib/forge-std/src/Test.sol";
-import {stdJson} from "../../lib/forge-std/src/StdJson.sol";
+import {Test, console} from "lib/forge-std/src/Test.sol";
+import {stdJson} from "lib/forge-std/src/StdJson.sol";
 import {SignatureVerification} from "../contracts/SignatureVerification.sol";
-import {SP1VerifierGateway} from "../../lib/sp1-contracts/contracts/src/SP1VerifierGateway.sol";
+import {SP1Verifier} from "lib/sp1-contracts/contracts/src/v1.0.1/SP1Verifier.sol";
 
 struct SP1ProofFixtureJson {
-    bytes pubkey0;
-    bytes pubkeyI;
     bytes proof;
     bytes publicValues;
     bytes32 vkey;
@@ -19,6 +17,7 @@ contract SignatureVerificationTest is Test {
 
     address verifier;
     SignatureVerification public signatureVerification;
+    SP1ProofFixtureJson fixture;
 
     function loadFixture() public view returns (SP1ProofFixtureJson memory) {
         string memory root = vm.projectRoot();
@@ -29,20 +28,13 @@ contract SignatureVerificationTest is Test {
     }
 
     function setUp() public {
-        SP1ProofFixtureJson memory fixture = loadFixture();
+        fixture = loadFixture();
 
-        verifier = address(new SP1VerifierGateway(address(1)));
+        verifier = address(new SP1Verifier());
         signatureVerification = new SignatureVerification(verifier, fixture.vkey);
     }
 
-    function test_validateSignatureProof() public {
-        SP1ProofFixtureJson memory fixture = loadFixture();
-
-        vm.mockCall(verifier, abi.encodeWithSelector(SP1VerifierGateway.verifyProof.selector), abi.encode(true));
-
-        (bytes memory pubkey0, bytes memory pubkeyI) = signatureVerification.verifySignatureProof(fixture.publicValues, fixture.proof);
-
-        assertEq(pubkey0, fixture.pubkey0);
-        assertEq(pubkeyI, fixture.pubkeyI);
+    function test_validateSignatureProof() public view {
+        signatureVerification.verifySignatureProof(fixture.publicValues, fixture.proof);
     }
 }

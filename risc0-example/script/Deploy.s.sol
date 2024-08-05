@@ -18,9 +18,9 @@ pragma solidity ^0.8.20;
 
 import {Script} from "lib/forge-std/src/Script.sol";
 import {console2} from "lib/forge-std/src/console2.sol";
-import {IRiscZeroVerifier} from "lib/risc0-ethereum/contracts/src//IRiscZeroVerifier.sol";
-import {RiscZeroGroth16Verifier} from "lib/risc0-ethereum/contracts/src//groth16/RiscZeroGroth16Verifier.sol";
-import {ControlID} from "lib/risc0-ethereum/contracts/src//groth16/ControlID.sol";
+import {IRiscZeroVerifier} from "lib/risc0-ethereum/contracts/src/IRiscZeroVerifier.sol";
+import {RiscZeroGroth16Verifier} from "lib/risc0-ethereum/contracts/src/groth16/RiscZeroGroth16Verifier.sol";
+import {ControlID} from "lib/risc0-ethereum/contracts/src/groth16/ControlID.sol";
 
 import {CommitmentVerification} from "../contracts/CommitmentVerification.sol";
 
@@ -30,7 +30,7 @@ import {CommitmentVerification} from "../contracts/CommitmentVerification.sol";
 ///
 /// See the Foundry documentation for more information about Solidity scripts.
 /// https://book.getfoundry.sh/tutorials/solidity-scripting
-contract EvenNumberDeploy is Script {
+contract ProofsDeploy is Script {
     function run() external {
         uint256 deployerKey = uint256(vm.envBytes32("ETH_WALLET_PRIVATE_KEY"));
 

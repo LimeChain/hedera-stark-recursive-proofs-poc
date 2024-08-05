@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ISP1Verifier} from "../../lib/sp1-contracts/contracts/src/ISP1Verifier.sol";
+import {ISP1Verifier} from "lib/sp1-contracts/contracts/src/ISP1Verifier.sol";
 
 /// @title signature.
 /// @author Succinct Labs
@@ -29,10 +29,10 @@ contract SignatureVerification {
     function verifySignatureProof(bytes calldata _publicValues, bytes calldata _proofBytes)
         public
         view
-        returns (bytes memory, bytes memory)
+        returns (bool)
     {
         ISP1Verifier(verifier).verifyProof(proofsProgramVK, _publicValues, _proofBytes);
-        (bytes memory pubkey_0, bytes memory pubkey) = abi.decode(_publicValues, (bytes, bytes));
-        return (pubkey_0, pubkey);
+
+        return true;
     }
 }

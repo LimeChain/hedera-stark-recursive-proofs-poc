@@ -1,12 +1,9 @@
 [profile.default]
 src = "contracts"
 out = "out"
-libs = ["../lib"]
+libs = ["lib"]
 test = "tests"
 ffi = true
 fs_permissions = [{ access = "read-write", path = "./"}]
-
-[profile.default.remappings]
-sp1-contracts = "../lib/sp1-contracts/contracts/src/"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

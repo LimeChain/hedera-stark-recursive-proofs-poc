@@ -242,8 +242,6 @@ fn generate_private_keys() -> Result<(Fr, Fr), anyhow::Error> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SP1FibonacciProofFixture {
-    pubkey_0: String,
-    pubkey_i: String,
     vkey: String,
     public_values: String,
     proof: String,
@@ -253,12 +251,9 @@ struct SP1FibonacciProofFixture {
 fn create_plonk_fixture(proof: &SP1ProofWithPublicValues, vk: &SP1VerifyingKey) {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
-    let (pubkey_0, pubkey_i) = bincode::deserialize::<(Vec<u8>, Vec<u8>)>(bytes).unwrap();
 
     // Create the testing fixture so we can test things end-ot-end.
     let fixture = SP1FibonacciProofFixture {
-        pubkey_0: format!("0x{}", hex::encode(pubkey_0)),
-        pubkey_i: format!("0x{}", hex::encode(pubkey_i)),
         vkey: vk.bytes32().to_string(),
         public_values: format!("0x{}", hex::encode(bytes)),
         proof: format!("0x{}", hex::encode(proof.bytes())),
