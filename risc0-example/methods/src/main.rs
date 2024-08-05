@@ -154,7 +154,9 @@ fn run_demo() -> Result<(), anyhow::Error> {
 }
 
 fn read_receipt(file_path: &str) -> Result<Receipt, anyhow::Error> {
-    let receipt: Receipt = serde_json::from_str(&std::fs::read_to_string(file_path)?)?;
+    let data = std::fs::read_to_string(file_path)?;
+    let receipt: Receipt = serde_json::from_str(&data)?;
+
     Ok(receipt)
 }
 
