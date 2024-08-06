@@ -19,4 +19,4 @@ target/
 .DS_Store
 .idea
 
-examples/
+risc0-example/examples/

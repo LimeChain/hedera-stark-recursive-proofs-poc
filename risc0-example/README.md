@@ -54,7 +54,7 @@ For running on CUDA-Enabled GPUs, you will need to install the [cuda toolkit](ht
 By setting the environment variable `RISC0_USE_DOCKER` a containerized build process via Docker will ensure that all builds of your guest code, regardless of the machine or local environment, will produce the same [image ID][image-id].
 
 ```sh
-RISC0_USE_DOCKER=1 cargo build --release
+RISC0_USE_DOCKER=1 cargo build --release -- --pubkey0 0x1234....
 ```
 
 ### Run the Code
@@ -64,24 +64,24 @@ NOTE: The receipts in the `examples.zip` archive have been generated on a VM usi
 - Run the Rust code on a local machine. Note: This will take several hours to produce the Groth16 SNARK proofs for the zkVM prover.
 
   ```sh
-    RISC0_DEV_MODE=false cargo run --release
+    RISC0_DEV_MODE=false cargo run --release -- --pubkey0 0x1234....
   ```
 
 - Run the Rust code using CUDA-Enabled GPUs Acceleration. Note: Requires a compatible GPU and the CUDA Toolkit installed.
 
   ```sh
-    RISC0_DEV_MODE=false cargo run --release --F cuda
+    RISC0_DEV_MODE=false cargo run --release --F cuda -- --pubkey0 0x1234....
   ```
 
-- Run the rust code with previously generated assumption receipts. Note: Extract the `examples.zip` archive containing the receipts in the root folder of the project. You can find the receipts in the `examples` folder. Pass the file name as an argument to the command. Groth16 receipts cannot be used as assumptions.
+- Run the rust code with previously generated assumption receipts. Note: Extract the `examples.zip` archive containing the receipts in the root folder of the project. You can find the receipts in the `examples` folder. Pass the file path as an argument to the command. Groth16 receipts cannot be used as assumptions.
   ```sh
-    RISC0_USE_DOCKER=1 RISC0_DEV_MODE=false cargo run --release -- assumption_receipt
+    RISC0_USE_DOCKER=1 RISC0_DEV_MODE=false cargo run --release -- --pubkey0 0x1234.... --receipts path/to/receipt.json
   ```
 
 - Run the Rust code in demo mode. Note: This will read previously generated receipts for the on-chain verification. Note: Extract the `examples.zip` archive containing the receipts in the root folder of the project. For Deterministic Builds, set the `RISC0_USE_DOCKER` environment variable.
 
   ```sh
-    RISC0_USE_DOCKER=1 RISC0_DEV_MODE=false RUN_DEMO=true cargo run --release
+    RISC0_USE_DOCKER=1 RISC0_DEV_MODE=false cargo run --release -- --demo
   ```
 
 ### Run the Tests
