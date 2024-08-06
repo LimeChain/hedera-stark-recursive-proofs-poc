@@ -1,0 +1,23 @@
+[package]
+name = "guests"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "proofs"
+path = "src/main.rs"
+
+[workspace]
+
+[dependencies]
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-serialize = "0.4"
+ark-bn254 = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+
+risc0-zkvm = { version = "1.0", default-features = false, features = ['std'] }
+
+[profile.release]
+lto = "thin"
