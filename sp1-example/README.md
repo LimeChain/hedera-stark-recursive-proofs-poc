@@ -86,3 +86,14 @@ Then, set the `SP1_PROVER` environment variable to `network` and set the `SP1_PR
   cd script
   cargo run --release -- --demo
   ```
+
+## Run the Tests
+
+- The example contains a test for on-chain verification of the SP1 zkVM proof. It uses the fixture generated in the `examples` folder by executing either the `demo` flow with a previously generated proof or after generating a PLONK proof with the main flow using the `--plonk` flag.
+
+> [!NOTE]
+> The `examples` folder already contains a `fixture.json` file that can be used in the test.
+
+```sh
+forge test --match-path tests/SignatureVerification.t.sol -vvv
+```
